@@ -1,0 +1,937 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Permainan Interaktif: Susunan 13 Rukun Solat</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Fredoka (mesra kanak-kanak) & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(180deg, #bae6fd 0%, #e0f2fe 70%, #fde68a 100%);
+      min-height: 100vh;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow-x: hidden;
+    }
+
+    .font-kid {
+      font-family: 'Fredoka', sans-serif;
+    }
+
+    /* Slot Nombor 1 - 13 */
+    .rukun-slot {
+      min-height: 54px;
+      border: 2.5px dashed #0284c7;
+      background-color: rgba(255, 255, 255, 0.85);
+      transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+      cursor: pointer;
+    }
+
+    .rukun-slot.drag-over {
+      transform: scale(1.03);
+      background-color: #fef08a;
+      border-color: #d97706;
+      box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.3);
+    }
+
+    .rukun-slot.filled {
+      border-style: solid;
+      border-color: #059669;
+      background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+      color: #ffffff;
+      box-shadow: 0 3px 0 #065f46;
+    }
+
+    .rukun-slot.correct-slot {
+      border-color: #15803d !important;
+      background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%) !important;
+      color: #ffffff !important;
+      animation: popScale 0.4s ease;
+    }
+
+    .rukun-slot.wrong-slot {
+      border-color: #dc2626 !important;
+      background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%) !important;
+      color: #ffffff !important;
+      animation: shakeRow 0.45s ease;
+    }
+
+    /* Kad Rukun Boleh Seret */
+    .rukun-card {
+      cursor: grab;
+      transition: transform 0.16s ease, box-shadow 0.16s ease, opacity 0.2s ease;
+      touch-action: none;
+      border: 2px solid #065f46;
+      box-shadow: 0 3px 0 #065f46;
+    }
+
+    .rukun-card:hover {
+      transform: translateY(-2px) scale(1.02);
+    }
+
+    .rukun-card:active,
+    .rukun-card.dragging {
+      cursor: grabbing;
+      opacity: 0.7;
+      transform: scale(1.04);
+    }
+
+    /* Butang Permainan */
+    .game-btn {
+      transition: all 0.15s ease;
+      border: 2.5px solid #1e293b;
+      box-shadow: 0 4px 0 #1e293b;
+    }
+
+    .game-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 0 #1e293b;
+    }
+
+    .game-btn:active:not(:disabled) {
+      transform: translateY(2px);
+      box-shadow: 0 2px 0 #1e293b;
+    }
+
+    .game-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    @keyframes popScale {
+      0% { transform: scale(1); }
+      45% { transform: scale(1.04); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes shakeRow {
+      0%, 100% { transform: translateX(0); }
+      20% { transform: translateX(-6px); }
+      40% { transform: translateX(6px); }
+      60% { transform: translateX(-4px); }
+      80% { transform: translateX(4px); }
+    }
+
+    @keyframes floatCloud {
+      0%, 100% { transform: translateX(0px); }
+      50% { transform: translateX(12px); }
+    }
+
+    .cloud-anim {
+      animation: floatCloud 6s ease-in-out infinite;
+    }
+
+    /* Klon seretan sentuhan */
+    #touch-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%) scale(1.05);
+      display: none;
+    }
+
+    /* Konfeti */
+    .confetti-piece {
+      position: fixed;
+      width: 10px;
+      height: 14px;
+      top: -20px;
+      z-index: 100;
+      animation: fallConfetti linear forwards;
+    }
+
+    @keyframes fallConfetti {
+      to {
+        transform: translateY(105vh) rotate(720deg);
+      }
+    }
+  </style>
+</head>
+<body class="p-2 sm:p-4 md:p-5 flex flex-col items-center justify-between relative">
+
+  <!-- Klon visual semasa seretan skrin sentuh -->
+  <div id="touch-ghost" class="bg-emerald-500 text-white px-4 py-2 rounded-full font-kid font-bold text-sm sm:text-base border-2 border-slate-900 shadow-2xl"></div>
+
+  <!-- Hiasan Awan & Masjid di Latar Belakang (Mengikut Poster Rujukan) -->
+  <div class="fixed top-6 left-6 text-white/80 pointer-events-none cloud-anim hidden md:block" aria-hidden="true">
+    <svg width="110" height="50" viewBox="0 0 110 50" fill="currentColor">
+      <path d="M20 45h70a15 15 0 0 0 3-29.7A22 22 0 0 0 50 10a17 17 0 0 0-30 35z"/>
+    </svg>
+  </div>
+  <div class="fixed top-14 right-10 text-white/80 pointer-events-none cloud-anim hidden md:block" style="animation-delay: 2.5s;" aria-hidden="true">
+    <svg width="90" height="42" viewBox="0 0 110 50" fill="currentColor">
+      <path d="M20 45h70a15 15 0 0 0 3-29.7A22 22 0 0 0 50 10a17 17 0 0 0-30 35z"/>
+    </svg>
+  </div>
+
+  <!-- Bekas Utama Permainan -->
+  <main class="w-full max-w-6xl bg-white/75 backdrop-blur-sm border-4 border-sky-700 rounded-3xl p-4 sm:p-6 shadow-xl z-10 my-auto">
+
+    <!-- HEADER TAJUK (Ala Poster 13 Rukun Solat) -->
+    <header class="flex flex-col sm:flex-row items-center justify-between gap-3 mb-4 pb-3 border-b-2 border-sky-200">
+      <div class="flex items-center gap-3">
+        <!-- Badge Nombor 13 Hijau -->
+        <div class="bg-lime-400 border-3 border-slate-900 rounded-2xl px-3.5 py-1.5 shadow-md flex items-center gap-2">
+          <span class="font-kid text-3xl sm:text-4xl font-extrabold text-white drop-shadow-[0_2px_0_rgba(15,23,42,1)]">13</span>
+          <div class="leading-tight text-left">
+            <span class="block font-kid text-xs sm:text-sm font-bold text-slate-900 uppercase">Rukun</span>
+            <span class="block font-kid text-base sm:text-xl font-extrabold text-slate-900 uppercase -mt-1">Solat</span>
+          </div>
+        </div>
+        <div>
+          <h1 class="font-kid text-lg sm:text-2xl font-bold text-sky-950">
+            Susun 13 Rukun Solat Mengikut Urutan
+          </h1>
+          <p class="text-xs sm:text-sm text-slate-600 font-medium">
+            Seret (<span class="italic">drag & drop</span>) atau klik kad rukun untuk mengisi nombor 1 hingga 13!
+          </p>
+        </div>
+      </div>
+
+      <!-- Bar Status & Kawalan Atas -->
+      <div class="flex items-center gap-2.5 flex-wrap justify-center">
+        <div class="bg-amber-100 border-2 border-amber-500 px-3 py-1.5 rounded-xl font-kid font-bold text-amber-900 text-sm">
+          📋 Terisi: <span id="filled-count">0</span> / 13
+        </div>
+        <div class="bg-emerald-100 border-2 border-emerald-500 px-3 py-1.5 rounded-xl font-kid font-bold text-emerald-900 text-sm">
+          ⭐ Betul: <span id="correct-count">0</span> / 13
+        </div>
+        <button id="sound-btn" type="button" onclick="toggleSound()" class="p-2 rounded-xl bg-white hover:bg-slate-100 border-2 border-slate-400 text-base" title="Tukar Bunyi">
+          🔊
+        </button>
+        <button type="button" onclick="openStudyModal()" class="px-3 py-1.5 rounded-xl bg-sky-100 hover:bg-sky-200 border-2 border-sky-500 font-kid font-bold text-sky-900 text-xs sm:text-sm">
+          📖 Nota Rujukan
+        </button>
+      </div>
+    </header>
+
+    <!-- MESEJ MAKLUM BALAS INTERAKTIF -->
+    <div id="feedback-box" class="hidden mb-4 rounded-2xl border-2 p-3 text-center font-kid text-sm sm:text-base font-bold transition-all"></div>
+
+    <!-- ========================================================= -->
+    <!-- KAWASAN PERMAINAN UTAMA: 2 KOLUM SLOT (1-7 & 8-13) + BANK KAD -->
+    <!-- ========================================================= -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+
+      <!-- BAHAGIAN KIRI & TENGAH (8 Kolum): PAPAN SUSUNAN NOMBOR 1 HINGGA 13 -->
+      <div class="lg:col-span-8 bg-sky-50/90 border-2 border-sky-300 rounded-2xl p-3 sm:p-4">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="font-kid font-bold text-sky-950 text-base sm:text-lg flex items-center gap-1.5">
+            🔢 Papan Susunan Urutan (1 – 13)
+          </h2>
+          <span class="text-xs text-sky-700 font-medium">Klik kotak terisi untuk keluarkan kad</span>
+        </div>
+
+        <!-- Susunan 2 Lajur Seperti Poster Rujukan: Lajur 1 (1-7) & Lajur 2 (8-13) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Lajur 1: Rukun 1 hingga 7 -->
+          <div id="slots-col-1" class="space-y-2.5"></div>
+          <!-- Lajur 2: Rukun 8 hingga 13 -->
+          <div id="slots-col-2" class="space-y-2.5"></div>
+        </div>
+      </div>
+
+      <!-- BAHAGIAN KANAN (4 Kolum): BANK KAD 13 RUKUN SOLAT (RAWAK) -->
+      <div class="lg:col-span-4 bg-amber-50/95 border-2 border-amber-400 rounded-2xl p-3 sm:p-4 flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-2.5">
+            <h2 class="font-kid font-bold text-amber-950 text-base sm:text-lg flex items-center gap-1.5">
+              🃏 Pilihan Kad Rukun
+            </h2>
+            <span id="remaining-badge" class="text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-bold">
+              13 Kad
+            </span>
+          </div>
+          <p class="text-xs text-amber-800 mb-3">
+            Seret kad ke nombor yang betul, atau <strong>klik kad</strong> untuk masuk ke kotak kosong seterusnya.
+          </p>
+
+          <!-- Senarai Kad Rawak -->
+          <div id="card-bank" class="flex flex-wrap lg:flex-col gap-2 max-h-[430px] overflow-y-auto pr-1"></div>
+        </div>
+
+        <!-- Petunjuk Pantas di Bawah Bank Kad -->
+        <div class="mt-4 pt-3 border-t border-amber-300 text-center">
+          <button type="button" onclick="giveHint()" id="hint-btn" class="w-full py-2 px-3 rounded-xl bg-yellow-300 hover:bg-yellow-400 border-2 border-amber-700 font-kid font-bold text-amber-950 text-sm shadow-sm transition">
+            💡 Bantuan: Isi 1 Rukun Seterusnya
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- BAR BUTANG KAWALAN BAWAH -->
+    <footer class="mt-5 pt-4 border-t-2 border-sky-200 flex flex-wrap items-center justify-center gap-3 sm:gap-4">
+      <button type="button" onclick="resetGame()" class="game-btn bg-amber-300 hover:bg-amber-400 text-slate-900 font-kid font-bold text-base sm:text-lg px-5 py-2.5 rounded-2xl">
+        🔀 Kocok & Mula Semula
+      </button>
+
+      <button id="check-btn" type="button" onclick="checkAllAnswers()" class="game-btn bg-emerald-400 hover:bg-emerald-500 text-slate-900 font-kid font-bold text-base sm:text-xl px-7 py-2.5 rounded-2xl flex items-center gap-2">
+        <span>✅</span> Semak Susunan
+      </button>
+    </footer>
+
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- MODAL NOTA RUJUKAN / KEPUTUSAN TAMAT                      -->
+  <!-- ========================================================= -->
+  <div id="modal-overlay" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-3 sm:p-5">
+    <div class="bg-white border-4 border-sky-700 rounded-3xl max-w-3xl w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 shadow-2xl relative">
+      <div class="flex items-center justify-between border-b-2 border-slate-200 pb-3 mb-4">
+        <h2 id="modal-title" class="font-kid text-xl sm:text-2xl font-bold text-sky-950">
+          📖 Nota Rujukan: 13 Rukun Solat
+        </h2>
+        <button type="button" onclick="closeModal()" class="w-9 h-9 rounded-full bg-slate-200 hover:bg-slate-300 font-bold text-slate-800">
+          ✕
+        </button>
+      </div>
+
+      <div id="modal-body"></div>
+
+      <div class="mt-5 flex justify-center gap-3">
+        <button type="button" onclick="closeModal()" class="game-btn bg-sky-400 hover:bg-sky-500 text-slate-900 font-kid font-bold px-6 py-2.5 rounded-2xl">
+          Tutup
+        </button>
+        <button id="modal-replay-btn" type="button" onclick="closeModal(); resetGame();" class="hidden game-btn bg-emerald-400 hover:bg-emerald-500 text-slate-900 font-kid font-bold px-6 py-2.5 rounded-2xl">
+          🔁 Main Semula
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. DATA LENGKAP 13 RUKUN SOLAT (MENGIKUT URUTAN POSTER RUJUKAN)
+    // =========================================================================
+    const RUKUN_SOLAT_DATA = [
+      {
+        order: 1,
+        title: 'BERDIRI BETUL',
+        category: 'Fi\'li (Perbuatan)',
+        desc: 'Berdiri tegak menghadap kiblat bagi yang mampu ketika solat fardhu.',
+        icon: getPoseSVG('stand')
+      },
+      {
+        order: 2,
+        title: 'NIAT',
+        category: 'Qalbi (Hati)',
+        desc: 'Menghadirkan niat solat di dalam hati serentak ketika Takbiratul Ihram.',
+        icon: getPoseSVG('niat')
+      },
+      {
+        order: 3,
+        title: 'TAKBIRATUL IHRAM',
+        category: 'Qauli (Bacaan)',
+        desc: 'Mengangkat kedua belah tangan sambil melafazkan "Allahu Akbar".',
+        icon: getPoseSVG('takbir')
+      },
+      {
+        order: 4,
+        title: 'MEMBACA AL-FATIHAH',
+        category: 'Qauli (Bacaan)',
+        desc: 'Membaca surah Al-Fatihah dengan tajwid yang betul pada setiap rakaat.',
+        icon: getPoseSVG('qiam')
+      },
+      {
+        order: 5,
+        title: 'RUKUK',
+        category: 'Fi\'li (Perbuatan)',
+        desc: 'Membongkokkan badan sehingga belakang rata dan tapak tangan memegang lutut (serta tama\'ninah).',
+        icon: getPoseSVG('rukuk')
+      },
+      {
+        order: 6,
+        title: 'IKTIDAL',
+        category: 'Fi\'li (Perbuatan)',
+        desc: 'Bangun semula daripada rukuk dan berdiri tegak seperti asal (serta tama\'ninah).',
+        icon: getPoseSVG('iktidal')
+      },
+      {
+        order: 7,
+        title: 'SUJUD DUA KALI',
+        category: 'Fi\'li (Perbuatan)',
+        desc: 'Meletakkan dahi, hidung, kedua tapak tangan, lutut dan hujung jari kaki ke lantai (serta tama\'ninah).',
+        icon: getPoseSVG('sujud')
+      },
+      {
+        order: 8,
+        title: 'DUDUK ANTARA 2 SUJUD',
+        category: 'Fi\'li (Perbuatan)',
+        desc: 'Duduk sebentar (iftirasy) di antara sujud pertama dan sujud kedua (serta tama\'ninah).',
+        icon: getPoseSVG('duduk')
+      },
+      {
+        order: 9,
+        title: 'DUDUK TAHIYAT AKHIR',
+        category: 'Fi\'li (Perbuatan)',
+        desc: 'Duduk tawarruk pada rakaat terakhir sebelum memberi salam.',
+        icon: getPoseSVG('tahiyat')
+      },
+      {
+        order: 10,
+        title: 'BACA TAHIYAT AKHIR',
+        category: 'Qauli (Bacaan)',
+        desc: 'Membaca bacaan Tahiyat Akhir ketika duduk pada rakaat terakhir.',
+        icon: getPoseSVG('tahiyat')
+      },
+      {
+        order: 11,
+        title: 'MEMBACA SELAWAT',
+        category: 'Qauli (Bacaan)',
+        desc: 'Membaca selawat ke atas Nabi Muhammad SAW selepas bacaan Tahiyat Akhir.',
+        icon: getPoseSVG('tahiyat')
+      },
+      {
+        order: 12,
+        title: 'MEMBERI SALAM',
+        category: 'Qauli (Bacaan)',
+        desc: 'Mengucapkan salam pertama ("Assalamualaikum warahmatullah") sambil menoleh ke kanan.',
+        icon: getPoseSVG('salam')
+      },
+      {
+        order: 13,
+        title: 'TERTIB',
+        category: 'Maknawi',
+        desc: 'Melakukan kesemua rukun solat mengikut urutan yang betul dari awal hingga akhir.',
+        icon: getPoseSVG('tertib')
+      }
+    ];
+
+    // Fungsi menjana ikon SVG comel pergerakan solat (seperti bulatan oren dalam poster)
+    function getPoseSVG(type) {
+      const baseCircle = `<circle cx="24" cy="24" r="22" fill="#fef3c7" stroke="#f59e0b" stroke-width="2.5"/>`;
+      if (type === 'stand' || type === 'niat') {
+        return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+          <circle cx="24" cy="13" r="5" fill="#fed7aa" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M19 10 q5-4 10 0" fill="#1e293b"/>
+          <rect x="19" y="19" width="10" height="12" rx="2" fill="#ffffff" stroke="#475569" stroke-width="1.2"/>
+          <rect x="20" y="31" width="8" height="10" fill="#0f766e"/>
+          ${type === 'niat' ? '<path d="M32 12 c2-3 6-1 4 3 l-4 4 l-4-4 c-2-4 2-6 4-3z" fill="#ef4444"/>' : ''}
+        </svg>`;
+      }
+      if (type === 'takbir' || type === 'iktidal') {
+        return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+          <circle cx="24" cy="13" r="5" fill="#fed7aa" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M19 10 q5-4 10 0" fill="#1e293b"/>
+          <rect x="19" y="19" width="10" height="12" rx="2" fill="#ffffff" stroke="#475569" stroke-width="1.2"/>
+          <path d="M19 21 L14 14 M29 21 L34 14" stroke="#fed7aa" stroke-width="2.8" stroke-linecap="round"/>
+          <rect x="20" y="31" width="8" height="10" fill="#0f766e"/>
+        </svg>`;
+      }
+      if (type === 'qiam') {
+        return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+          <circle cx="24" cy="13" r="5" fill="#fed7aa" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M19 10 q5-4 10 0" fill="#1e293b"/>
+          <rect x="19" y="19" width="10" height="12" rx="2" fill="#ffffff" stroke="#475569" stroke-width="1.2"/>
+          <path d="M19 22 L25 25 L29 22" fill="none" stroke="#92400e" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="20" y="31" width="8" height="10" fill="#0f766e"/>
+        </svg>`;
+      }
+      if (type === 'rukuk') {
+        return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+          <circle cx="14" cy="21" r="4.5" fill="#fed7aa" stroke="#78350f" stroke-width="1.2"/>
+          <rect x="18" y="19" width="13" height="7" rx="2" fill="#ffffff" stroke="#475569" stroke-width="1.2"/>
+          <line x1="21" y1="26" x2="21" y2="35" stroke="#fed7aa" stroke-width="2.5" stroke-linecap="round"/>
+          <rect x="26" y="26" width="6" height="14" fill="#0f766e"/>
+        </svg>`;
+      }
+      if (type === 'sujud') {
+        return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+          <line x1="10" y1="36" x2="38" y2="36" stroke="#94a3b8" stroke-width="2"/>
+          <circle cx="15" cy="32" r="4" fill="#fed7aa" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M18 32 Q25 22 32 30 L35 35 L26 35 Z" fill="#ffffff" stroke="#475569" stroke-width="1.2"/>
+          <rect x="27" y="32" width="8" height="4" fill="#0f766e"/>
+        </svg>`;
+      }
+      if (type === 'duduk' || type === 'tahiyat') {
+        return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+          <circle cx="22" cy="16" r="4.5" fill="#fed7aa" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M18 13 q4-3 8 0" fill="#1e293b"/>
+          <rect x="18" y="21" width="9" height="11" rx="2" fill="#ffffff" stroke="#475569" stroke-width="1.2"/>
+          <path d="M18 32 h14 v5 h-14 z" fill="#0f766e"/>
+          ${type === 'tahiyat' ? '<line x1="27" y1="28" x2="33" y2="26" stroke="#b45309" stroke-width="2" stroke-linecap="round"/>' : ''}
+        </svg>`;
+      }
+      if (type === 'salam') {
+        return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+          <circle cx="24" cy="16" r="4.5" fill="#fed7aa" stroke="#78350f" stroke-width="1.2"/>
+          <path d="M30 16 L36 14 M30 16 L35 19" stroke="#0284c7" stroke-width="2" stroke-linecap="round"/>
+          <rect x="19" y="21" width="10" height="11" rx="2" fill="#ffffff" stroke="#475569" stroke-width="1.2"/>
+          <path d="M17 32 h14 v5 h-14 z" fill="#0f766e"/>
+        </svg>`;
+      }
+      // tertib
+      return `<svg viewBox="0 0 48 48" class="w-9 h-9 shrink-0">${baseCircle}
+        <path d="M15 25 L21 31 L34 17" fill="none" stroke="#16a34a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`;
+    }
+
+    // =========================================================================
+    // 2. KEADAAN PERMAINAN (STATE) & BUNYI WEB AUDIO
+    // =========================================================================
+    // slotsState[1..13] menyimpan objek rukun yang diletakkan di slot tersebut
+    let slotsState = {};
+    let shuffledBank = [];
+    let isChecked = false;
+    let soundEnabled = true;
+    let audioCtx = null;
+
+    function playSound(type) {
+      if (!soundEnabled) return;
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        if (type === 'place') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(540, now);
+          osc.frequency.exponentialRampToValueAtTime(720, now + 0.08);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+          osc.start(now);
+          osc.stop(now + 0.09);
+        } else if (type === 'remove') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(420, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.08);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.09);
+          osc.start(now);
+          osc.stop(now + 0.09);
+        } else if (type === 'win') {
+          const notes = [523.25, 659.25, 783.99, 1046.5];
+          notes.forEach((freq, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(freq, now + i * 0.09);
+            g.gain.setValueAtTime(0.16, now + i * 0.09);
+            g.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.28);
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.start(now + i * 0.09);
+            o.stop(now + i * 0.09 + 0.3);
+          });
+        } else if (type === 'error') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(210, now);
+          osc.frequency.linearRampToValueAtTime(160, now + 0.22);
+          gain.gain.setValueAtTime(0.11, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.23);
+          osc.start(now);
+          osc.stop(now + 0.24);
+        }
+      } catch (e) {}
+    }
+
+    function toggleSound() {
+      soundEnabled = !soundEnabled;
+      document.getElementById('sound-btn').textContent = soundEnabled ? '🔊' : '🔇';
+    }
+
+    // =========================================================================
+    // 3. INISIALISASI & PAPARAN SLOT (1-13) SERTA BANK KAD RAWAK
+    // =========================================================================
+    function resetGame() {
+      slotsState = {};
+      isChecked = false;
+      shuffledBank = [...RUKUN_SOLAT_DATA];
+      // Kocok susunan kad secara rawak
+      for (let i = shuffledBank.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledBank[i], shuffledBank[j]] = [shuffledBank[j], shuffledBank[i]];
+      }
+
+      document.getElementById('feedback-box').classList.add('hidden');
+      document.getElementById('correct-count').textContent = '0';
+      renderBoard();
+    }
+
+    function renderBoard() {
+      renderSlots();
+      renderCardBank();
+      updateCounters();
+    }
+
+    function updateCounters() {
+      const filled = Object.keys(slotsState).length;
+      document.getElementById('filled-count').textContent = filled;
+      document.getElementById('remaining-badge').textContent = `${13 - filled} Kad`;
+    }
+
+    function renderSlots() {
+      const col1 = document.getElementById('slots-col-1');
+      const col2 = document.getElementById('slots-col-2');
+      col1.innerHTML = '';
+      col2.innerHTML = '';
+
+      for (let num = 1; num <= 13; num++) {
+        const placedItem = slotsState[num];
+        const slotEl = document.createElement('div');
+        slotEl.dataset.slotNum = num;
+
+        let statusClass = '';
+        if (placedItem) {
+          statusClass = 'filled';
+          if (isChecked) {
+            statusClass += placedItem.order === num ? ' correct-slot' : ' wrong-slot';
+          }
+        }
+
+        slotEl.className = `rukun-slot rounded-full px-2.5 py-1.5 flex items-center gap-2.5 ${statusClass}`;
+
+        if (placedItem) {
+          slotEl.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-white text-emerald-800 border-2 border-slate-900 font-kid font-extrabold text-base flex items-center justify-center shrink-0">
+              ${num}
+            </div>
+            ${placedItem.icon}
+            <span class="font-kid font-bold text-xs sm:text-sm tracking-wide uppercase flex-1 truncate">
+              ${placedItem.title}
+            </span>
+            <span class="text-xs bg-black/20 px-2 py-0.5 rounded-full font-bold" title="Keluarkan">
+              ${isChecked ? (placedItem.order === num ? '✓' : '✕') : '✕'}
+            </span>
+          `;
+        } else {
+          slotEl.innerHTML = `
+            <div class="w-8 h-8 rounded-full bg-sky-600 text-white border-2 border-slate-900 font-kid font-extrabold text-base flex items-center justify-center shrink-0">
+              ${num}
+            </div>
+            <span class="font-kid text-xs sm:text-sm text-slate-400 font-semibold italic flex-1">
+              Letakkan rukun ke-${num}...
+            </span>
+          `;
+        }
+
+        // Klik pada slot yang sudah terisi untuk mengembalikan kad ke bank
+        slotEl.addEventListener('click', () => {
+          if (placedItem) {
+            delete slotsState[num];
+            isChecked = false;
+            document.getElementById('feedback-box').classList.add('hidden');
+            playSound('remove');
+            renderBoard();
+          }
+        });
+
+        // Peristiwa Drag & Drop HTML5 (Desktop)
+        slotEl.addEventListener('dragover', e => {
+          e.preventDefault();
+          slotEl.classList.add('drag-over');
+        });
+
+        slotEl.addEventListener('dragleave', () => {
+          slotEl.classList.remove('drag-over');
+        });
+
+        slotEl.addEventListener('drop', e => {
+          e.preventDefault();
+          slotEl.classList.remove('drag-over');
+          const orderStr = e.dataTransfer.getData('text/plain');
+          if (!orderStr) return;
+          const rukunOrder = parseInt(orderStr, 10);
+          placeRukunIntoSlot(rukunOrder, num);
+        });
+
+        if (num <= 7) {
+          col1.appendChild(slotEl);
+        } else {
+          col2.appendChild(slotEl);
+        }
+      }
+    }
+
+    function renderCardBank() {
+      const bankEl = document.getElementById('card-bank');
+      bankEl.innerHTML = '';
+
+      // Tapis kad yang belum diletakkan di mana-mana slot
+      const usedOrders = new Set(Object.values(slotsState).map(item => item.order));
+      const availableCards = shuffledBank.filter(item => !usedOrders.has(item.order));
+
+      if (availableCards.length === 0) {
+        bankEl.innerHTML = `
+          <div class="w-full text-center py-6 px-3 bg-white/80 rounded-2xl border-2 border-dashed border-emerald-500">
+            <p class="font-kid font-bold text-emerald-800 text-base mb-1">🎉 Semua 13 kad telah disusun!</p>
+            <p class="text-xs text-slate-600">Tekan butang <strong>Semak Susunan</strong> di bawah untuk melihat markah anda.</p>
+          </div>
+        `;
+        return;
+      }
+
+      availableCards.forEach(item => {
+        const card = document.createElement('div');
+        card.className =
+          'rukun-card bg-emerald-500 hover:bg-emerald-600 text-white rounded-full px-2.5 py-1.5 flex items-center gap-2 select-none';
+        card.setAttribute('draggable', 'true');
+        card.dataset.order = item.order;
+
+        card.innerHTML = `
+          ${item.icon}
+          <span class="font-kid font-bold text-xs sm:text-sm tracking-wide uppercase flex-1">
+            ${item.title}
+          </span>
+          <span class="text-white/80 text-xs pr-1">⋮⋮</span>
+        `;
+
+        // Drag Desktop
+        card.addEventListener('dragstart', e => {
+          card.classList.add('dragging');
+          e.dataTransfer.setData('text/plain', String(item.order));
+        });
+
+        card.addEventListener('dragend', () => {
+          card.classList.remove('dragging');
+        });
+
+        // Klik Terus: Masukkan ke slot kosong pertama (nombor terkecil yang kosong)
+        card.addEventListener('click', () => {
+          const firstEmptySlot = findFirstEmptySlot();
+          if (firstEmptySlot !== null) {
+            placeRukunIntoSlot(item.order, firstEmptySlot);
+          }
+        });
+
+        // Seretan Skrin Sentuh (Tablet / Smartboard)
+        setupTouchDragForCard(card, item);
+
+        bankEl.appendChild(card);
+      });
+    }
+
+    function findFirstEmptySlot() {
+      for (let i = 1; i <= 13; i++) {
+        if (!slotsState[i]) return i;
+      }
+      return null;
+    }
+
+    function placeRukunIntoSlot(rukunOrder, targetSlotNum) {
+      const itemObj = RUKUN_SOLAT_DATA.find(r => r.order === rukunOrder);
+      if (!itemObj) return;
+
+      // Jika rukun ini sudah ada di slot lain, kosongkan slot lama dahulu
+      for (let s = 1; s <= 13; s++) {
+        if (slotsState[s] && slotsState[s].order === rukunOrder) {
+          delete slotsState[s];
+        }
+      }
+
+      slotsState[targetSlotNum] = itemObj;
+      isChecked = false;
+      document.getElementById('feedback-box').classList.add('hidden');
+      playSound('place');
+      renderBoard();
+    }
+
+    // =========================================================================
+    // 4. SOKONGAN SERET SENTUHAN (TOUCH DRAG)
+    // =========================================================================
+    function setupTouchDragForCard(card, item) {
+      const ghost = document.getElementById('touch-ghost');
+      let isDraggingTouch = false;
+      let startX = 0;
+      let startY = 0;
+
+      card.addEventListener(
+        'touchstart',
+        e => {
+          const t = e.touches[0];
+          startX = t.clientX;
+          startY = t.clientY;
+          isDraggingTouch = false;
+        },
+        { passive: true }
+      );
+
+      card.addEventListener(
+        'touchmove',
+        e => {
+          const t = e.touches[0];
+          if (Math.abs(t.clientX - startX) > 8 || Math.abs(t.clientY - startY) > 8) {
+            isDraggingTouch = true;
+            e.preventDefault();
+            ghost.textContent = item.title;
+            ghost.style.display = 'block';
+            ghost.style.left = `${t.clientX}px`;
+            ghost.style.top = `${t.clientY}px`;
+          }
+        },
+        { passive: false }
+      );
+
+      card.addEventListener('touchend', e => {
+        ghost.style.display = 'none';
+        if (!isDraggingTouch) return;
+
+        const t = e.changedTouches[0];
+        const targetElem = document.elementFromPoint(t.clientX, t.clientY);
+        const slotEl = targetElem ? targetElem.closest('.rukun-slot') : null;
+        if (slotEl && slotEl.dataset.slotNum) {
+          const slotNum = parseInt(slotEl.dataset.slotNum, 10);
+          placeRukunIntoSlot(item.order, slotNum);
+        }
+      });
+    }
+
+    // =========================================================================
+    // 5. FUNGSI BANTUAN (HINT) & SEMAKAN JAWAPAN
+    // =========================================================================
+    function giveHint() {
+      // Cari nombor slot pertama yang kosong atau salah
+      for (let num = 1; num <= 13; num++) {
+        const current = slotsState[num];
+        if (!current || current.order !== num) {
+          placeRukunIntoSlot(num, num);
+          showFeedback(
+            `💡 Bantuan: Rukun ke-${num} ialah <strong>${RUKUN_SOLAT_DATA[num - 1].title}</strong>.`,
+            'info'
+          );
+          return;
+        }
+      }
+      showFeedback('✨ Semua 13 rukun solat sudah berada di tempat yang betul!', 'success');
+    }
+
+    function checkAllAnswers() {
+      const filledCount = Object.keys(slotsState).length;
+      if (filledCount < 13) {
+        showFeedback(
+          `☝️ Sila lengkapkan kesemua 13 kotak susunan dahulu! (Baki lagi ${13 - filledCount} rukun belum diisi)`,
+          'warning'
+        );
+        playSound('error');
+        return;
+      }
+
+      isChecked = true;
+      let correctTotal = 0;
+
+      for (let num = 1; num <= 13; num++) {
+        if (slotsState[num] && slotsState[num].order === num) {
+          correctTotal++;
+        }
+      }
+
+      document.getElementById('correct-count').textContent = correctTotal;
+      renderSlots();
+
+      if (correctTotal === 13) {
+        playSound('win');
+        launchConfetti();
+        showFeedback(
+          '🏆 TAHNIAH! Anda berjaya menyusun kesemua 13 Rukun Solat dengan tepat mengikut tertib!',
+          'success'
+        );
+        setTimeout(() => {
+          openVictoryModal();
+        }, 900);
+      } else {
+        playSound('error');
+        showFeedback(
+          `🔍 Anda mendapat <strong>${correctTotal} / 13</strong> betul. Kotak berwarna merah masih kurang tepat—klik kotak merah untuk keluarkan dan susun semula!`,
+          'error'
+        );
+      }
+    }
+
+    function showFeedback(htmlMsg, type) {
+      const box = document.getElementById('feedback-box');
+      const styles = {
+        success: 'border-emerald-600 bg-emerald-100 text-emerald-950',
+        error: 'border-red-500 bg-red-100 text-red-950',
+        warning: 'border-amber-500 bg-amber-100 text-amber-950',
+        info: 'border-sky-500 bg-sky-100 text-sky-950'
+      };
+      box.className = `mb-4 rounded-2xl border-2 p-3 text-center font-kid text-sm sm:text-base font-bold ${styles[type] || styles.info}`;
+      box.innerHTML = htmlMsg;
+      box.classList.remove('hidden');
+    }
+
+    // =========================================================================
+    // 6. MODAL NOTA RUJUKAN & KEMENANGAN
+    // =========================================================================
+    function openStudyModal() {
+      document.getElementById('modal-title').textContent = '📖 Nota Rujukan: 13 Rukun Solat';
+      document.getElementById('modal-replay-btn').classList.add('hidden');
+      renderModalRukunList(false);
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+
+    function openVictoryModal() {
+      document.getElementById('modal-title').textContent = '🏆 Syabas! Susunan 13 Rukun Solat Sempurna!';
+      document.getElementById('modal-replay-btn').classList.remove('hidden');
+      renderModalRukunList(true);
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+
+    function renderModalRukunList(isWin) {
+      const body = document.getElementById('modal-body');
+      let intro = isWin
+        ? `<div class="bg-emerald-100 border-2 border-emerald-500 rounded-2xl p-3.5 text-center mb-4">
+             <p class="font-kid font-bold text-emerald-900 text-lg">Markah Penuh: 13 / 13 ⭐</p>
+             <p class="text-xs sm:text-sm text-emerald-800">Semoga menjadi anak soleh dan solehah yang menjaga solat 5 waktu!</p>
+           </div>`
+        : `<p class="text-xs sm:text-sm text-slate-600 mb-3">Hafal dan fahami susunan 13 rukun solat mengikut tertib di bawah:</p>`;
+
+      let gridHtml = `<div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">`;
+      RUKUN_SOLAT_DATA.forEach(r => {
+        gridHtml += `
+          <div class="flex items-start gap-2.5 bg-sky-50 border border-sky-300 rounded-2xl p-2.5">
+            <div class="w-7 h-7 rounded-full bg-emerald-500 text-white font-kid font-bold text-sm flex items-center justify-center shrink-0 mt-0.5">
+              ${r.order}
+            </div>
+            ${r.icon}
+            <div>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h3 class="font-kid font-bold text-slate-900 text-sm">${r.title}</h3>
+                <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-200 text-amber-900 font-bold">${r.category}</span>
+              </div>
+              <p class="text-xs text-slate-600 mt-0.5 leading-snug">${r.desc}</p>
+            </div>
+          </div>
+        `;
+      });
+      gridHtml += `</div>`;
+      body.innerHTML = intro + gridHtml;
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+    }
+
+    function launchConfetti() {
+      const colors = ['#22c55e', '#facc15', '#38bdf8', '#f87171', '#a855f7'];
+      for (let i = 0; i < 50; i++) {
+        const piece = document.createElement('div');
+        piece.className = 'confetti-piece rounded-sm';
+        piece.style.left = `${Math.random() * 100}vw`;
+        piece.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        piece.style.animationDuration = `${2 + Math.random() * 2}s`;
+        piece.style.animationDelay = `${Math.random() * 0.5}s`;
+        document.body.appendChild(piece);
+        setTimeout(() => piece.remove(), 4500);
+      }
+    }
+
+    // Mulakan permainan semasa halaman siap dimuatkan
+    window.onload = function () {
+      resetGame();
+    };
+  </script>
+</body>
+</html>
